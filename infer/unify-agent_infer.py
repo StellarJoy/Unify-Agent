@@ -517,7 +517,7 @@ You can also call `text_search` to gather more specific information first, then 
                 break
 
         if reference_images:
-            downloaded_images = reference_images[:2]
+            downloaded_images = reference_images[:3]
             print(f"  Using provided reference images: {downloaded_images}")
 
         print(f"\n  Search phase ended after {turn_counter} turn(s). "

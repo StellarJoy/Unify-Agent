@@ -62,7 +62,15 @@ def _validate_inferencer_apis(inferencer: Any) -> None:
         )
 
 
-def load_model_and_inferencer(model_path: str, mode: int = 1, device_map: str = "auto") -> Any:
+def load_model_and_inferencer(
+    model_path: str,
+    mode: int = 1,
+    device_map: str = "auto",
+    base_model_path: str | None = None,
+    ema_path: str | None = None,
+    cast_ema_to_bfloat16: bool = False,
+    ema_bf16_cache_path: str | None = None,
+) -> Any:
     """Load model and return inferencer used by inference/eval scripts.
 
     Args:
@@ -71,25 +79,37 @@ def load_model_and_inferencer(model_path: str, mode: int = 1, device_map: str = 
         device_map: Device placement strategy passed to Transformers.
     """
     quant_config = _build_quant_config(mode)
+    base_path = base_model_path or model_path
 
-    _ = AutoConfig.from_pretrained(model_path, trust_remote_code=True)
-    _ = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+    _ = AutoConfig.from_pretrained(base_path, trust_remote_code=True)
+    _ = AutoTokenizer.from_pretrained(base_path, trust_remote_code=True)
 
     common_kwargs = dict(
         trust_remote_code=True,
         device_map=device_map,
     )
+    optional_model_kwargs = {}
+    if base_model_path is not None:
+        optional_model_kwargs["base_model_path"] = base_model_path
+    if ema_path is not None:
+        optional_model_kwargs["ema_path"] = ema_path
+    if cast_ema_to_bfloat16:
+        optional_model_kwargs["cast_ema_to_bfloat16"] = cast_ema_to_bfloat16
+    if ema_bf16_cache_path is not None:
+        optional_model_kwargs["ema_bf16_cache_path"] = ema_bf16_cache_path
 
     if quant_config is not None:
         model = AutoModel.from_pretrained(
             model_path,
             quantization_config=quant_config,
+            **optional_model_kwargs,
             **common_kwargs,
         )
     else:
         model = AutoModel.from_pretrained(
             model_path,
             torch_dtype=torch.bfloat16,
+            **optional_model_kwargs,
             **common_kwargs,
         )
 
